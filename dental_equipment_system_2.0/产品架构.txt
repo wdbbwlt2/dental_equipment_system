@@ -1,0 +1,357 @@
+# 牙科设备展会管理系统技术文档
+
+## 1. 系统概述
+
+### 1.1 系统简介
+
+牙科设备展会管理系统是一个基于 Python + PyQt5 开发的桌面应用程序,用于管理牙科设备展会相关的各项信息。本系统采用 MySQL 作为数据库,实现了产品管理、展会管理、展会产品关联等核心功能。
+
+### 1.2 核心功能
+
+- 产品管理:管理展会相关牙科设备产品信息
+- 展会管理:管理展会基本信息和日程安排
+- 展会产品关联管理:管理产品与展会的关联关系
+- 数据可视化:提供多维度的统计分析图表
+- 数据导出:支持Excel、CSV、PDF等多种格式导出
+
+### 1.3 技术栈
+
+- 开发语言: Python 3.7+
+- GUI框架: PyQt5 5.15.9
+- 数据库: MySQL 8.0+
+- 数据分析: Pandas 2.0.3, NumPy 1.24.3
+- 数据可视化: Matplotlib 3.7.1, Seaborn 0.12.2
+- 文档生成: Reportlab 4.0.4
+- 数据导出: XlsxWriter 3.1.2, PyPDF2 3.0.1
+
+## 2. 系统架构
+
+### 2.1 目录结构
+
+```
+dental_equipment_system/
+├── config/                 # 配置模块
+├── database/              # 数据库模块
+├── models/                # 数据模型
+├── ui/                    # 界面模块
+├── utils/                 # 工具模块
+├── resources/             # 资源文件
+├── docs/                  # 文档
+├── tests/                 # 测试用例
+├── main.py               # 主程序
+└── requirements.txt      # 依赖清单
+```
+
+### 2.2 模块说明
+
+#### 2.2.1 配置模块 (config/)
+- **config.py**: 系统配置管理
+  - 数据库连接配置
+  - 用户界面配置
+  - 导出功能配置
+  - 图表样式配置
+  
+- **logging_config.py**: 日志配置管理
+  - 日志级别设置
+  - 日志格式定义
+  - 日志文件管理
+  - 日志轮转策略
+
+#### 2.2.2 数据库模块 (database/)
+- **database.py**: 数据库操作封装
+  - 连接池管理
+  - SQL执行接口
+  - 事务管理
+  - 异常处理
+  - 防注入处理
+
+#### 2.2.3 数据模型模块 (models/)
+- **product.py**: 产品模型
+- **exhibition.py**: 展会模型
+- **record.py**: 关联记录模型
+
+#### 2.2.4 用户界面模块 (ui/)
+- **main_window.py**: 主窗口实现
+- **dialogs/**: 各类对话框
+- **widgets/**: 自定义控件
+
+#### 2.2.5 工具模块 (utils/)
+- **export/**: 数据导出功能
+- **visualization/**: 数据可视化
+- **statistics.py**: 统计分析
+- **logger.py**: 日志工具
+
+## 3. 数据库设计
+
+### 3.1 表结构
+
+#### products (产品表)
+```sql
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    model VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+#### exhibitions (展会表)
+```sql
+CREATE TABLE exhibitions (
+    exhibition_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    address VARCHAR(100) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+#### product_exhibition_records (关联记录表)
+```sql
+CREATE TABLE product_exhibition_records (
+    record_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    exhibition_id INT NOT NULL,
+    status ENUM('待参展', '参展中', '已结束') DEFAULT '待参展',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(product_id),
+    FOREIGN KEY (exhibition_id) REFERENCES exhibitions(exhibition_id)
+);
+```
+
+### 3.2 索引设计
+
+```sql
+CREATE INDEX idx_product_model ON products(model);
+CREATE INDEX idx_exhibition_date ON exhibitions(start_date, end_date);
+```
+
+## 4. 核心功能实现
+
+### 4.1 数据库连接池
+
+database/database.py 实现了基于 mysql-connector-python 的数据库连接池:
+
+```python
+class Database:
+    def __init__(self, config: Dict[str, Any] = None):
+        self.config = config or {
+            'host': 'localhost',
+            'port': 3306,
+            'user': 'root',
+            'password': 'your_password',
+            'database': 'dental_equipment_db',
+            'pool_name': 'mypool',
+            'pool_size': 5
+        }
+        self.connection_pool = mysql.connector.pooling.MySQLConnectionPool(**self.config)
+```
+
+### 4.2 数据模型
+
+所有模型继承自基类并实现了必要的验证和业务逻辑:
+
+```python
+@dataclass
+class Product:
+    product_id: int
+    model: str
+    name: str
+    color: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    def validate(self) -> List[str]:
+        errors = []
+        if not isinstance(self.product_id, int) or self.product_id <= 0:
+            errors.append("产品ID必须是正整数")
+        return errors
+```
+
+### 4.3 用户界面
+
+使用PyQt5实现GUI,主要包含:
+
+- 主窗口(MainWindow)
+- 产品管理对话框(ProductDialog)
+- 展会管理对话框(ExhibitionDialog)
+- 关联记录对话框(RecordDialog)
+- 数据可视化对话框(VisualizationDialog)
+
+### 4.4 数据可视化
+
+基于Matplotlib和Seaborn实现多种图表:
+
+- 产品分布图
+- 展会时间分布图
+- 参展状态统计图
+- 趋势分析图
+
+### 4.5 数据导出
+
+支持多种格式导出:
+
+- Excel导出(使用XlsxWriter)
+- CSV导出(使用内置csv模块)
+- PDF导出(使用Reportlab)
+
+## 5. 部署说明
+
+### 5.1 环境要求
+
+- Python 3.7+
+- MySQL 8.0+
+- 4GB+ RAM
+- 10GB+ 磁盘空间
+
+### 5.2 安装步骤
+
+1. 安装Python依赖:
+```bash
+pip install -r requirements.txt
+```
+
+2. 配置MySQL数据库:
+```sql
+CREATE DATABASE dental_equipment_db;
+USE dental_equipment_db;
+-- 执行SQL初始化脚本
+```
+
+3. 修改配置文件:
+```json
+{
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "database": "dental_equipment_db",
+        "user": "root",
+        "password": "your_password"
+    }
+}
+```
+
+4. 启动应用:
+```bash
+python main.py
+```
+
+## 6. 开发指南
+
+### 6.1 开发规范
+
+1. 代码风格遵循PEP 8
+2. 使用类型注解
+3. 编写详细的文档字符串
+4. 实现完整的异常处理
+5. 添加详细的日志记录
+
+### 6.2 版本控制
+
+- 使用语义化版本号
+- 保持向后兼容性
+- 记录完整的变更日志
+
+### 6.3 测试要求
+
+- 单元测试覆盖率 > 80%
+- 集成测试覆盖关键功能
+- UI自动化测试覆盖主要流程
+
+## 7. 维护指南
+
+### 7.1 日常维护
+
+1. 数据库维护:
+   - 定期备份数据
+   - 优化表结构
+   - 清理历史数据
+
+2. 日志管理:
+   - 监控错误日志
+   - 定期归档日志
+   - 分析系统性能
+
+3. 系统监控:
+   - 监控资源使用
+   - 跟踪系统性能
+   - 分析用户反馈
+
+### 7.2 故障处理
+
+1. 数据库连接问题:
+   - 检查网络连接
+   - 验证配置信息
+   - 检查连接池状态
+
+2. 界面显示异常:
+   - 检查日志记录
+   - 分析异常堆栈
+   - 验证数据完整性
+
+3. 导出功能失败:
+   - 检查文件权限
+   - 验证数据格式
+   - 确认磁盘空间
+
+### 7.3 性能优化
+
+1. 数据库优化:
+   - 优化查询语句
+   - 添加必要索引
+   - 优化表结构
+
+2. 界面优化:
+   - 优化数据加载
+   - 实现分页显示
+   - 优化图表渲染
+
+3. 资源管理:
+   - 优化内存使用
+   - 及时释放资源
+   - 控制并发访问
+
+## 8. 常见问题
+
+### 8.1 安装问题
+
+Q: 安装依赖包失败?
+A: 确保使用最新版pip,并检查Python版本兼容性。
+
+Q: 数据库连接失败?
+A: 检查数据库配置和网络连接。
+
+### 8.2 使用问题
+
+Q: 图表显示异常?
+A: 检查数据完整性和图表配置。
+
+Q: 导出功能失败?
+A: 确认文件权限和磁盘空间。
+
+### 8.3 性能问题
+
+Q: 系统响应缓慢?
+A: 检查数据库查询和资源使用情况。
+
+Q: 内存占用过高?
+A: 优化数据处理和资源释放。
+
+## 9. 更新历史
+
+### v1.0.0 (2024-11-12)
+- 初始版本发布
+- 实现基本功能
+- 支持数据导出
+- 添加图表显示
+
+## 10. 联系方式
+
+- 技术支持: support@example.com
+- 问题反馈: feedback@example.com
+- 文档更新: docs@example.com

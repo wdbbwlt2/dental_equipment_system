@@ -1,0 +1,52 @@
+# requirements.txt
+# Web视图支持
+PyQtWebEngine==5.15.4
+
+# 数据处理和可视化
+plotly==5.18.0
+pandas==2.0.3
+
+PyQt5 == 5.15
+.9
+PyQt5 - Qt5 == 5.15
+.2
+PyQt5 - sip == 12.12
+.1
+mysql - connector - python == 8.0
+.33
+pandas == 2.0
+.3
+numpy == 1.24
+.3
+matplotlib == 3.7
+.1
+seaborn == 0.12
+.2
+reportlab == 4.0
+.4
+XlsxWriter == 3.1
+.2
+PyPDF2 == 3.0
+.1
+psutil == 5.9
+.5
+python - dateutil == 2.8
+.2
+chardet == 5.1
+.0
+pillow == 9.5
+.0
+requests == 2.31
+.0
+pyinstaller == 5.13
+.0  # 用于打包应用
+pytest == 7.4
+.0  # 用于单元测试
+coverage == 7.2
+.7  # 用于测试覆盖率分析
+flake8 == 6.0
+.0  # 用于代码风格检查
+mypy == 1.4
+.1  # 用于类型检查
+black == 23.3
+.0  # 用于代码格式化
