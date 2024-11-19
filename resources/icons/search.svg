@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Search icon -->
+  <g id="search">
+    <circle cx="50" cy="50" r="30" fill="none" stroke="black" stroke-width="8"/>
+    <line x1="72" y1="72" x2="100" y2="100" stroke="black" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>
